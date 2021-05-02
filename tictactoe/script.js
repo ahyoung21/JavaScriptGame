@@ -63,8 +63,41 @@ const checkWinner = (target) => {
   return hasWinner;
 };
 
+const checkWinnerAndDraw = (target) => {
+  const hasWinner = checkWinner(target);
+  if (hasWinner) {
+    $result.textContent = `${turn}님이 승리!`;
+    body.append($result);
+    $table.removeEventListener('click', clickEvent);
+
+    return;
+  }
+
+  // 무승부
+  const draw = rows.flat().every((cell) => cell.textContent);
+
+  // rows.forEach((row) => {
+  //   row.forEach((cell) => {
+  //     if (!cell.textContent) {
+  //       draw = false;
+  //     }
+  //   });
+  // });
+  if (draw) {
+    $result.textContent = '무승부';
+    body.append($result);
+    return;
+  }
+
+  turn = turn === 'X' ? (turn = 'O') : (turn = 'X');
+};
+
+let clickable = true;
 const clickEvent = (e) => {
   // e.stopPropagation();
+  if (!clickable) {
+    return;
+  }
 
   if (e.target.textContent) return;
 
@@ -79,30 +112,20 @@ const clickEvent = (e) => {
 
   //   turn = 'O';
   // }
+  checkWinnerAndDraw(e.target);
 
-  if (checkWinner(e.target)) {
-    $result.textContent = `${turn}님이 승리!`;
-    body.append($result);
-    $table.removeEventListener('click', clickEvent);
+  if (turn === 'O') {
+    clickable = false;
+    setTimeout(() => {
+      const emptyCells = rows.flat().filter((v) => !v.textContent);
+      const randomCell =
+        emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      randomCell.textContent = 'O';
 
-    return;
+      checkWinnerAndDraw(e.target);
+      clickable = true;
+    }, 1000);
   }
-
-  // 무승부
-  let draw = true;
-  rows.forEach((row) => {
-    row.forEach((cell) => {
-      if (!cell.textContent) {
-        draw = false;
-      }
-    });
-  });
-  if (draw) {
-    $result.textContent = '무승부';
-    body.append($result);
-    return;
-  }
-  turn = turn === 'X' ? (turn = 'O') : (turn = 'X');
 };
 
 for (let j = 0; j < 3; j++) {
