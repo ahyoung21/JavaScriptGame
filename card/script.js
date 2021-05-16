@@ -2,17 +2,30 @@
 
 const $wrapper = document.querySelector('#wrapper');
 
-const total = 12;
-const colors = ['red', 'orange', 'yellow', 'green', 'white', 'pink'];
-let colorCopy = colors.concat(colors);
+const total = parseInt(prompt('카드 개수를 짝수로 입력하세요.(최대 20)', 12));
+const colors = [
+  'red',
+  'orange',
+  'yellow',
+  'green',
+  'white',
+  'pink',
+  'cyan',
+  'violet',
+  'gray',
+  'black',
+];
+let colorSlice = colors.slice(0, total / 2);
+let colorCopy = colorSlice.concat(colorSlice);
 let shuffled = [];
 let clicked = [];
 let completed = [];
 let clickable = false;
+let startTime;
 
 function shuffle() {
   // 피셔-예이츠 셔플
-  for (let i = 0; colorCopy.length > 0; i++) {
+  for (let i = 0; colorCopy.length > 0; i += 1) {
     const randomIndex = Math.floor(Math.random() * colorCopy.length);
     shuffled = shuffled.concat(colorCopy.splice(randomIndex, 1));
   }
@@ -42,15 +55,16 @@ function onClickCard() {
   if (!clickable || completed.includes(this) || clicked[0] === this) {
     return;
   }
+
   this.classList.toggle('flipped');
   clicked.push(this);
   if (clicked.length !== 2) {
     return;
   }
-  let firstBackColor = clicked[0].querySelector('.card-back').style
-    .backgroundColor;
-  let secondBackColor = clicked[1].querySelector('.card-back').style
-    .backgroundColor;
+  let firstBackColor =
+    clicked[0].querySelector('.card-back').style.backgroundColor;
+  let secondBackColor =
+    clicked[1].querySelector('.card-back').style.backgroundColor;
 
   if (firstBackColor === secondBackColor) {
     completed.push(clicked[0]);
@@ -59,41 +73,47 @@ function onClickCard() {
     if (completed.length !== total) {
       return;
     }
+    const endTime = new Date();
     setTimeout(() => {
-      alert('축하합니다!');
+      alert(`축하합니다! ${(endTime - startTime) / 1000}초 걸렸습니다`);
       console.log(completed);
       resetGame();
     }, 1000);
     return;
   }
+  clickable = false;
   setTimeout(() => {
     clicked[0].classList.remove('flipped');
     clicked[1].classList.remove('flipped');
     clicked = [];
+    clickable = true;
   }, 1000);
 }
 
 function startGame() {
   clickable = false;
   shuffle();
-  for (let i = 0; i < total; i++) {
+  for (let i = 0; i < total; i += 1) {
     const card = createCard(i);
     card.addEventListener('click', onClickCard);
-    $wrapper.append(card);
+    $wrapper.appendChild(card);
   }
 
   document.querySelectorAll('.card').forEach((card, index) => {
+    // 초반 카드 공개
     setTimeout(() => {
       card.classList.add('flipped');
     }, 1000 + 100 * index);
   });
 
   setTimeout(() => {
+    // 카드 감추기
     document.querySelectorAll('.card').forEach((card) => {
       card.classList.remove('flipped');
     });
     clickable = true;
-  }, 4000);
+    startTime = new Date();
+  }, 5000);
 }
 
 startGame();
@@ -101,7 +121,7 @@ startGame();
 function resetGame() {
   $wrapper.innerHTML = '';
   colorCopy = colors.concat(colors);
-  shuffle = [];
+  shuffled = [];
   completed = [];
   startGame();
 }
