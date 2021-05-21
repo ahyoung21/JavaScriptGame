@@ -1,10 +1,12 @@
 'use strict';
 
+const $timer = document.querySelector('#timer');
 const $tbody = document.querySelector('#table tbody');
 const $result = document.querySelector('#result');
-const row = 10;
-const cell = 10;
-const mine = 10;
+const $form = document.querySelector('#form');
+let row;
+let cell;
+let mine;
 const CODE = {
   NORMAL: -1, // 닫힌 칸(지뢰없음)
   QUESTION: -2,
@@ -16,6 +18,10 @@ const CODE = {
 };
 
 let data;
+let openCount;
+let startTime;
+let interval;
+const dev = false;
 
 function plantMine() {
   const candidate = Array(row * cell)
@@ -68,7 +74,7 @@ function onRightClick(e) {
   } else if (cellData === CODE.FLAG_MINE) {
     data[rowIndex][cellIndex] = CODE.MINE;
     target.className = '';
-    target.textContent = 'X';
+    // target.textContent = 'X';
   } else if (cellData === CODE.NORMAL) {
     data[rowIndex][cellIndex] = CODE.QUESTION;
     target.className = 'question';
@@ -100,19 +106,49 @@ function countMine(rowIndex, cellIndex) {
 }
 
 function open(rowIndex, cellIndex) {
-  const target = $tbody.children[rowIndex].children[cellIndex];
+  if (data[rowIndex]?.[cellIndex] >= CODE.OPENED) return;
+  const target = $tbody.children[rowIndex]?.children[cellIndex];
+  if (!target) {
+    return;
+  }
+
   const count = countMine(rowIndex, cellIndex);
   target.textContent = count || '';
   target.className = 'opened';
   data[rowIndex][cellIndex] = count;
+  openCount += 1;
+  console.log(openCount);
+
+  if (openCount === row * cell - mine) {
+    const time = (new Date() - startTime) / 1000;
+    clearInterval(interval);
+    $tbody.removeEventListener('click', onLeftClick);
+    $tbody.removeEventListener('contextmenu', onRightClick);
+    setTimeout(() => {
+      alert(`승리했습니다! ${time}초가 걸렸습니다.`);
+    }, 0);
+  }
   return count;
 }
 
-function openArround(rowIndex, cellIndex) {
-  const count = open(rowIndex, cellIndex);
-  if (count === 0) {
-    isNormal(data[rowIndex - 1]?.[cellIndex - 1]) && open(rowIndex - 1, cellIndex - 1);
-  }
+function isNormal(cell) {
+  return cell === CODE.NORMAL;
+}
+
+function openAround(rowIndex, cellIndex) {
+  setTimeout(() => {
+    const count = open(rowIndex, cellIndex);
+    if (count === 0) {
+      openAround(rowIndex - 1, cellIndex - 1);
+      openAround(rowIndex - 1, cellIndex);
+      openAround(rowIndex - 1, cellIndex + 1);
+      openAround(rowIndex, cellIndex - 1);
+      openAround(rowIndex, cellIndex + 1);
+      openAround(rowIndex + 1, cellIndex - 1);
+      openAround(rowIndex + 1, cellIndex);
+      openAround(rowIndex + 1, cellIndex + 1);
+    }
+  }, 0);
 }
 
 function onLeftClick(e) {
@@ -134,12 +170,13 @@ function onLeftClick(e) {
     $result.textContent = 'Game Over';
     $tbody.removeEventListener('click', onLeftClick);
     $tbody.removeEventListener('contextmenu', onRightClick);
+    clearInterval(interval);
   } else if (cellData === CODE.NORMAL) {
     // const count = countMine(rowIndex, cellIndex);
     // target.textContent = count || '';
     // target.className = 'opened';
     // data[rowIndex][cellIndex] = count;
-    openArround(rowIndex, cellIndex);
+    openAround(rowIndex, cellIndex);
   }
 }
 
@@ -150,7 +187,7 @@ function drawTable() {
     row.forEach((cell) => {
       const $td = document.createElement('td');
       if (cell === CODE.MINE) {
-        $td.textContent = 'X';
+        // dev && $td.textContent = 'X';
       }
       $tr.append($td);
     });
@@ -160,4 +197,37 @@ function drawTable() {
   });
 }
 
-drawTable();
+$form.addEventListener('submit', onSubmit);
+
+function onSubmit(e) {
+  e.preventDefault();
+
+  const $row = document.querySelector('#row').value;
+  const $cell = document.querySelector('#cell').value;
+  const $mine = document.querySelector('#mine').value;
+
+  row = $row;
+  cell = $cell;
+  mine = $mine;
+  openCount = 0;
+
+  $tbody.innerHTML = '';
+  drawTable();
+
+  startTime = new Date();
+  interval = setInterval(() => {
+    const time = Math.floor((new Date() - startTime) / 1000);
+    $timer.textContent = `${time}초`;
+  }, 1000);
+}
+
+// let i = 0;
+// function recurse() {
+//   i++;
+//   recurse();
+// }
+// try {
+//   recurse();
+// } catch (ex) {
+//   alert('최대 크기는 ' + i + '\nerror: ' + ex);
+// }
