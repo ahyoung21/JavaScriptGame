@@ -23,6 +23,31 @@ let startTime;
 let interval;
 const dev = false;
 
+let normalCellFound = false;
+let searched;
+let firstClick = true;
+
+function onSubmit(e) {
+  e.preventDefault();
+
+  row = parseInt(e.target.row.value);
+  cell = parseInt(e.target.cell.value);
+  mine = parseInt(e.target.mine.value);
+
+  openCount = 0;
+  clearInterval(interval);
+  $tbody.innerHTML = '';
+  drawTable();
+
+  startTime = new Date();
+  interval = setInterval(() => {
+    const time = Math.floor((new Date() - startTime) / 1000);
+    $timer.textContent = `${time}초`;
+  }, 1000);
+}
+
+$form.addEventListener('submit', onSubmit);
+
 function plantMine() {
   const candidate = Array(row * cell)
     .fill()
@@ -117,7 +142,6 @@ function open(rowIndex, cellIndex) {
   target.className = 'opened';
   data[rowIndex][cellIndex] = count;
   openCount += 1;
-  console.log(openCount);
 
   if (openCount === row * cell - mine) {
     const time = (new Date() - startTime) / 1000;
@@ -151,11 +175,59 @@ function openAround(rowIndex, cellIndex) {
   }, 0);
 }
 
+function transferMine(rI, cI) {
+  if (normalCellFound) return; // 이미 빈칸을 찾았으면 종료
+  if (rI < 0 || rI >= row || cI < 0 || cI >= cell) return;
+  if (searched[rI][cI]) return; // 이미 찾은 칸이면 종료
+  if (data[rI][cI] === CODE.NORMAL) {
+    // 빈칸인 경우
+    normalCellFound = true;
+    data[rI][cI] = CODE.MINE;
+  } else {
+    // 지뢰 칸인 경우 8방향 탐색
+    searched[rI][cI] = true;
+    transferMine(rI - 1, cI - 1);
+    transferMine(rI - 1, cI);
+    transferMine(rI - 1, cI + 1);
+    transferMine(rI, cI - 1);
+    transferMine(rI, cI + 1);
+    transferMine(rI + 1, cI - 1);
+    transferMine(rI + 1, cI);
+    transferMine(rI + 1, cI + 1);
+  }
+}
+
+function showMines() {
+  const mines = [CODE.MINE, CODE.QUESTION_MINE, CODE.FLAG_MINE];
+  data.forEach((row, rowIndex) => {
+    row.forEach((cell, cellIndex) => {
+      if (mines.includes(cell)) {
+        $tbody.children[rowIndex].children[cellIndex].textContent = 'X';
+      }
+    });
+  });
+}
+
 function onLeftClick(e) {
   const target = e.target;
   const rowIndex = target.parentNode.rowIndex;
   const cellIndex = target.cellIndex;
-  const cellData = data[rowIndex][cellIndex];
+  let cellData = data[rowIndex][cellIndex];
+
+  if (firstClick) {
+    firstClick = false;
+    searched = Array(row)
+      .fill()
+      .map(() => []);
+
+    console.log(searched);
+    if (cellData === CODE.MINE) {
+      // 첫 클릭이 지뢰면
+      transferMine(rowIndex, cellIndex); // 지뢰 옮기기
+      data[rowIndex][cellIndex] = CODE.NORMAL; // 지금 칸을 빈칸으로
+      cellData = CODE.NORMAL;
+    }
+  }
 
   if (
     cellData === CODE.QUESTION ||
@@ -165,6 +237,7 @@ function onLeftClick(e) {
   ) {
     return;
   } else if (cellData === CODE.MINE) {
+    showMines();
     target.textContent = '펑';
     target.className = 'opened';
     $result.textContent = 'Game Over';
@@ -187,7 +260,7 @@ function drawTable() {
     row.forEach((cell) => {
       const $td = document.createElement('td');
       if (cell === CODE.MINE) {
-        // dev && $td.textContent = 'X';
+        // $td.textContent = 'X'; // 개발 편의를 위해
       }
       $tr.append($td);
     });
@@ -195,30 +268,6 @@ function drawTable() {
     $tbody.addEventListener('contextmenu', onRightClick);
     $tbody.addEventListener('click', onLeftClick);
   });
-}
-
-$form.addEventListener('submit', onSubmit);
-
-function onSubmit(e) {
-  e.preventDefault();
-
-  const $row = document.querySelector('#row').value;
-  const $cell = document.querySelector('#cell').value;
-  const $mine = document.querySelector('#mine').value;
-
-  row = $row;
-  cell = $cell;
-  mine = $mine;
-  openCount = 0;
-
-  $tbody.innerHTML = '';
-  drawTable();
-
-  startTime = new Date();
-  interval = setInterval(() => {
-    const time = Math.floor((new Date() - startTime) / 1000);
-    $timer.textContent = `${time}초`;
-  }, 1000);
 }
 
 // let i = 0;
